@@ -5,3 +5,6 @@ def sendheat(T):
 
 def holdtemp(T):
     pass
+
+def is_steady(T):
+	pass

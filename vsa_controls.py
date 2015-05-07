@@ -10,6 +10,7 @@ functions as needed:
 
 import visa
 import re
+from functools import wraps
 
 _d = locals()
 
@@ -86,7 +87,27 @@ def get_vsa(*args):
 
 if _ready_to_get_vsa(): get_vsa()
 
-def set_source(vsa=None, func=None, freq=None, volt=None):
+def use_default_vsa(f):
+    """Decorator for use with functions that interface with the VSA.
+
+    Usage:
+    @use_default_vsa
+    def my_function(arg_a, kwarg_b=None, vsa=None): pass
+    """
+    @wraps(f)
+    def _decorator(*args, **kwargs):
+        # if ``'vsa' not in kwargs`` evals to True, ``or`` skips second
+        # expression, which otherwise would throw an error
+        if 'vsa' not in kwargs or kwargs['vsa'] is None:
+            try:
+                vsa = _d['cur_vsa']
+            except KeyError:
+                raise TypeError('No default instrument found; please provide')
+        return f(*args, **dict(kwargs.items() + [('vsa', vsa)]))
+    return _decorator
+
+@use_default_vsa
+def set_source(func=None, freq=None, volt=None, vsa=None):
     """Set the vector signal analyzer source type.
 
     set_source(vsa=None, func=None, freq=None, volt=None)
@@ -95,11 +116,6 @@ def set_source(vsa=None, func=None, freq=None, volt=None):
     freq: e.g. '200 kHz' or '.5MHz'
     ampl: e.g. '-5 dBm' or '5 mV'
     """
-    if vsa is None:
-        try:
-            vsa = _d['cur_vsa']
-        except KeyError:
-            raise TypeError('No default instrument found; please provide')
     if func is not None:
         vsa.write("sour:func %s" % func)
     if freq is not None:
@@ -107,20 +123,96 @@ def set_source(vsa=None, func=None, freq=None, volt=None):
     if volt is not None:
         vsa.write("sour:volt %s" % volt)
 
+@use_default_vsa
 def source_on(vsa=None):
     """Turn vector signal analyzer source on."""
-    if vsa is None:
-        try:
-            vsa = _d['cur_vsa']
-        except KeyError:
-            raise TypeError('No default instrument found; please provide')
     vsa.write('outp on')
 
+@use_default_vsa
 def source_off(vsa=None):
     """Turn vector signal analyzer source off."""
-    if vsa is None:
-        try:
-            vsa = _d['cur_vsa']
-        except KeyError:
-            raise TypeError('No default instrument found; please provide')
     vsa.write('outp off')
+
+@use_default_vsa
+def averaging_on(vsa=None):
+    """Turn vector signal analyzer averaging on."""
+    vsa.write('aver on')
+
+@use_default_vsa
+def freq_range(*args, **kwargs):
+    """Set the range of frequencies. Note: final frequency included.
+
+    Usage:
+    freq_range('500 kHz')
+        Sets the frequency interval to [0, 500] kHz.
+    freq_range('200 kHz', '300 kHz')
+        Sets the frequency interval to [200, 300] kHz.
+    freq_range('200 kHz', '300 kHz', '25 kHz')
+        Sets the frequency interval to [200, 300] kHz and the step size to
+        25 kHz.
+    freq_range(center='250 kHz')
+        Sets the center frequency to 250 kHz.
+    freq_range(span='100 kHz')
+        Sets the span to 100 kHz.
+    freq_range(center='250 kHz', span='100 kHz')
+        Sets the frequency interval to [200, 300] kHz.
+    freq_range(stepsize='25 kHz')
+        Sets the step size to 25 kHz.
+    freq_range()
+        Sets the frequency interval to its full range, [0, 10] MHz.
+    """
+    if 'vsa' not in kwargs:
+        kwargs['vsa'] = None
+    vsa = kwargs['vsa']
+
+    # Make sure parameters are sensible
+    if len(args) > 3:
+        raise TypeError('freq_range() takes 0, 1 or 2 arguments (%d given)' %
+                        len(args))
+    if ('center' in kwargs or 'span' in kwargs) and \
+        (len(args) > 0 or 'start' in kwargs or 'stop' in kwargs):
+        raise TypeError('Provide either (center=, span=) or (start, stop)')
+    if 'stepsize' in kwargs and len(args) == 3:
+        raise TypeError('Received multiple values of stepsize')
+
+    if len(args) == 1:
+        kwargs['start'] = "0 Hz"
+        kwargs['stop'] = args[0]
+    elif len(args) == 2 or len(args) == 3:
+        kwargs['start'], kwargs['stop'] = args[:2]
+    if len(args) == 3:
+        kwargs['stepsize'] = args[2]
+    if 'start' in kwargs:
+        vsa.write('freq:star %s' % kwargs['start'])
+    if 'stop' in kwargs:
+        vsa.write('freq:stop %s' % kwargs['stop'])
+    if 'center' in kwargs:
+        vsa.write('freq:cent %s' % kwargs['cent'])
+    if 'span' in kwargs:
+        vsa.write('freq:span %s' % kwargs['span'])
+    if 'stepsize' in kwargs:
+        vsa.write('freq:step:auto off')
+        vsa.write('freq:step %s' % kwargs['stepsize'])
+    if len(args) == 0 and len(kwargs) == 1:
+        vsa.write('freq:span:full')
+
+@use_default_vsa
+def freq_auto_stepsize(vsa=None):
+    """Returns the frequency step size to auto mode."""
+    vsa.write('freq:step:auto on')
+
+@use_default_vsa
+def averaging_off(vsa=None):
+    """Turn vector signal analyzer averaging off."""
+    vsa.write('aver off')
+
+@use_default_vsa
+def set_averaging(n=None, vsa=None):
+    """Set the number of collected spectra over which to average."""
+    if n is not None:
+        vsa.write('aver:coun %d' % n)
+
+@use_default_vsa
+def get_data(vsa=None):
+    """Get data from vector signal analyzer."""
+    return vsa.query_ascii_values('calc:data?')

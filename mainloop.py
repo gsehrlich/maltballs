@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import sendheat, gettemp, sendinput, getoutput
+import sendheat, gettemp, sendinput, getoutput, transfer_func_Q as Qfit
 import os
 import datetime
 import time

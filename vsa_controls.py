@@ -11,6 +11,8 @@ functions as needed:
 import visa
 import re
 from functools import wraps
+import numpy as np
+import warnings
 
 _d = locals()
 
@@ -140,48 +142,46 @@ def averaging_on(vsa=None):
 
 @use_default_vsa
 def freq_range(*args, **kwargs):
-    """Set the range of frequencies. Note: final frequency included.
+    """Set and return the range of frequencies. Note: final frequency included.
 
     Usage:
-    freq_range('500 kHz')
-        Sets the frequency interval to [0, 500] kHz.
-    freq_range('200 kHz', '300 kHz')
-        Sets the frequency interval to [200, 300] kHz.
-    freq_range('200 kHz', '300 kHz', '25 kHz')
-        Sets the frequency interval to [200, 300] kHz and the step size to
-        25 kHz.
-    freq_range(center='250 kHz')
-        Sets the center frequency to 250 kHz.
-    freq_range(span='100 kHz')
-        Sets the span to 100 kHz.
-    freq_range(center='250 kHz', span='100 kHz')
-        Sets the frequency interval to [200, 300] kHz.
-    freq_range(stepsize='25 kHz')
-        Sets the step size to 25 kHz.
     freq_range()
-        Sets the frequency interval to its full range, [0, 10] MHz.
+        Return a list of the current frequency values.
+    freq_range('500 kHz')
+        Set the frequency interval to [0, 500] kHz and return a list of the
+        frequency values.
+    freq_range('200 kHz', '300 kHz')
+        Set the frequency interval to [200, 300] kHz and return a list of the
+        frequency values.
+    freq_range(center='250 kHz')
+        Set the center frequency to 250 kHz and return a list of the frequency
+        values.
+    freq_range(span='100 kHz')
+        Set the span to 100 kHz and return a list of the frequency values.
+    freq_range(center='250 kHz', span='100 kHz')
+        Set the frequency interval to [200, 300] kHz and return a list of the
+        frequency values.
+    freq_range(n=401)
+        Set the number of frequency points to 401 and return a list of the
+        frequency values. Allowed values: 401, 801, 1601.
     """
     if 'vsa' not in kwargs:
         kwargs['vsa'] = None
     vsa = kwargs['vsa']
 
     # Make sure parameters are sensible
-    if len(args) > 3:
+    if len(args) > 2:
         raise TypeError('freq_range() takes 0, 1 or 2 arguments (%d given)' %
                         len(args))
     if ('center' in kwargs or 'span' in kwargs) and \
         (len(args) > 0 or 'start' in kwargs or 'stop' in kwargs):
         raise TypeError('Provide either (center=, span=) or (start, stop)')
-    if 'stepsize' in kwargs and len(args) == 3:
-        raise TypeError('Received multiple values of stepsize')
 
     if len(args) == 1:
         kwargs['start'] = "0 Hz"
         kwargs['stop'] = args[0]
-    elif len(args) == 2 or len(args) == 3:
-        kwargs['start'], kwargs['stop'] = args[:2]
-    if len(args) == 3:
-        kwargs['stepsize'] = args[2]
+    elif len(args) == 2:
+        kwargs['start'], kwargs['stop'] = args
     if 'start' in kwargs:
         vsa.write('freq:star %s' % kwargs['start'])
     if 'stop' in kwargs:
@@ -190,11 +190,16 @@ def freq_range(*args, **kwargs):
         vsa.write('freq:cent %s' % kwargs['cent'])
     if 'span' in kwargs:
         vsa.write('freq:span %s' % kwargs['span'])
-    if 'stepsize' in kwargs:
-        vsa.write('freq:step:auto off')
-        vsa.write('freq:step %s' % kwargs['stepsize'])
-    if len(args) == 0 and len(kwargs) == 1:
-        vsa.write('freq:span:full')
+    if 'n' in kwargs:
+        vsa.write('swe:poin %d' % kwargs['n'])
+        if kwargs['n'] not in (401, 801, 1601):
+            warnings.warn("Number of points %r not allowed. Value set to %r" %
+                          (kwargs['n'], vsa.query_ascii_values('swe:poin?')[0]),
+                          stacklevel=2)
+    start, = vsa.query_ascii_values('freq:star?')
+    stop, = vsa.query_ascii_values('freq:stop?')
+    n, = vsa.query_ascii_values('swe:poin?')
+    return np.linspace(start, stop, n, endpoint=True)
 
 @use_default_vsa
 def freq_auto_stepsize(vsa=None):

@@ -5,6 +5,7 @@ import os
 import datetime
 import time
 import numpy as np
+import threading
 
 def make_datafile():
     """Make a timestamped data file for this run and return it"""
@@ -25,55 +26,60 @@ def main():
             'stoploop': False,
             'fmt': "%s\t%s\t%s\t%s\n",
             'dt': 1
+            'accepting_input': False
             }
 
     print "\nvvv Starting loop vvv\n"
+    t = threading.Thread(run_loop, args=(params),)
     print "Press Ctrl + C to enter a command"
     # Outer loop, to make sure it's always in a try statement
     while True:
         try:
-            run_loop(**params)
+            time.sleep(0.1)
         except KeyboardInterrupt:
-            print "\n\n^^^ Loop paused. ^^^\n"
+            params['accepting_input'] = True
+            print "\n\n^^^ Suppressing loop output. ^^^\n"
             command = raw_input("Command: ")
             call_command(command, params)
             if params['stoploop']:
-                print "Stopping loop."
+                print "\n\n^^^ Stopping loop. ^^^"
                 break
             else:
-                print "Resuming loop."
+                print "\n\nvvv Resuming loop output. vvv\n"
+                params['accepting_input'] = False
 
-def run_loop(temp_steady, gathering_data, stoploop, fmt, dt):
+def run_loop(params):
     #while temp isn't steady
     while not stoploop:
         print "Stepping!"
         #fetch curr temp
-        T = gettemp.gettemp()
+        params['T'] = gettemp.gettemp()
         
         if not temp_steady:
             #send heat
-            heat_sent = sendheat.sendheat(T)
+            params['heat_sent'] = sendheat.sendheat(params['T'])
         if temp_steady:
             #hold heat
-            heat_sent = sendheat.holdtemp(T)
+            params['heat_sent'] = sendheat.holdtemp(params['T'])
         #check if temp has been steady
-        temp_steady = sendheat.is_steady(T)
+        params['temp_steady'] = sendheat.is_steady(params['T'])
 
         if gathering_data:
             #send signal
-            input_status = sendinput.get_status()
+            params['input_status'] = sendinput.get_status()
             #fetch data
-            out = getoutput.getoutput()
+            params['out'] = getoutput.getoutput()
         else:
-            input_status = None
-            out = None
+            params['input_status'] = None
+            params['out'] = None
 
         # progressively write to file
-        to_write = fmt % (T, heat_sent, input_status, out)
+        to_write = params['fmt'] % (params['T'], params['heat_sent'],
+                params['input_status'], params['out'])
         #f.write(to_write)
 
         # wait for dt milliseconds
-        time.sleep(dt)
+        time.sleep(params['dt'])
 
 def call_command(command, params):
     if command == "stop":

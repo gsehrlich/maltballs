@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import sendheat, gettemp, sendinput, getoutput, transfer_func_Q as Qfit
-import os
+import os, sys
 import datetime
 import time
 import numpy as np
@@ -25,13 +25,14 @@ def main():
             'gathering_data': False,
             'stoploop': False,
             'fmt': "%s\t%s\t%s\t%s\n",
-            'dt': 1
-            'accepting_input': False
+            'dt': 1,
+            'accepting_input': False,
             }
 
     print "\nvvv Starting loop vvv\n"
-    t = threading.Thread(run_loop, args=(params),)
     print "Press Ctrl + C to enter a command"
+    t = threading.Thread(target=run_loop, args=(params,))
+    t.start()
     # Outer loop, to make sure it's always in a try statement
     while True:
         try:
@@ -50,21 +51,22 @@ def main():
 
 def run_loop(params):
     #while temp isn't steady
-    while not stoploop:
-        print "Stepping!"
+    while not params['stoploop']:
+        if not params['accepting_input']:
+            print "\tStepping!"
         #fetch curr temp
         params['T'] = gettemp.gettemp()
         
-        if not temp_steady:
+        if not params['temp_steady']:
             #send heat
             params['heat_sent'] = sendheat.sendheat(params['T'])
-        if temp_steady:
+        if params['temp_steady']:
             #hold heat
             params['heat_sent'] = sendheat.holdtemp(params['T'])
         #check if temp has been steady
         params['temp_steady'] = sendheat.is_steady(params['T'])
 
-        if gathering_data:
+        if params['gathering_data']:
             #send signal
             params['input_status'] = sendinput.get_status()
             #fetch data

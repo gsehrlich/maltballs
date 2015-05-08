@@ -15,7 +15,7 @@ from scipy import signal
 from scipy.signal import argrelextrema
 
 
-datdir = "/Users/marielu/Documents/Stanford/Physics_108/"
+datdir = ""
 
 datfiles = ("sampledata.txt",)
 
@@ -25,12 +25,14 @@ all_noise = []
 all_noise_omega = []
 omega_0 = 398
 k_b = 1.381E-23
+T = 300
+m = 0
 
 
 def Q_fac (hw, omega_0):
-    return omega_0/hw
+    return omega_0/abs(hw)
 
-def Lorentzian (x, A, B, x0, m, C):
+def Lorentzian (x, A, B, x0):
     return A/(B**2+(x-x0)**2)
 
 def noise(phi, omega):
@@ -41,10 +43,20 @@ for ii in range(len(datfiles)):
     datfile = datfiles[ii]
     cdat = np.loadtxt(datdir+datfile)
     
-    init = [.0006, .8, 398, .00001, 0.001]
+    cdat[:, 1] = np.power(10, (cdat[:,1]-30)/10)
+
+    '''
+    fig2 = plt.figure(2)
+    plt.plot(cdat[10:,0], cdat[10:,1])
+    plt.show()
+    '''
     
-    coef, cov= sp.optimize.curve_fit(Lorentzian, cdat[:,0], cdat[:,1], init)
-    #print coef
+    
+    init = [5E-5, 1E4, 3E5]
+    #init = [0, 0, 0, 0, 0]
+
+    coef, cov= sp.optimize.curve_fit(Lorentzian, cdat[10:,0], cdat[10:,1])
+    print coef
     hw = 2*coef[1]
     print cov
     
@@ -52,11 +64,11 @@ for ii in range(len(datfiles)):
     allQ.append(Q_fac(hw, omega_0))
     allQ_std.append(2*omega_0*np.sqrt(cov[1][1])/(hw**2))
     all_noise_omega.append(coef[2])
-    all_noise.append(noise(1/Q_fac(hw, omega_0), coef[2]))
+    #all_noise.append(noise(1/Q_fac(hw, omega_0), coef[2]))
     
-    fig = plt.figure(1)
-    plt.plot(cdat[:,0], cdat[:,1])
-    plt.plot(cdat[:,0], Lorentzian(cdat[:,0], coef[0], coef[1], coef[2], coef[3], coef[4]))
+    fig1 = plt.figure(1)
+    plt.plot(cdat[10:,0], cdat[10:,1])
+    plt.plot(cdat[:,0], Lorentzian(cdat[:,0], coef[0], coef[1], coef[2]))
     plt.xlabel("Frequency (Hz)")
     plt.ylabel("Power")
     plt.show()
@@ -66,7 +78,5 @@ for ii in range(len(datfiles)):
 for kk in range(len(allQ)):
     
     print allQ[kk], allQ_std[kk]
-
-
 
 

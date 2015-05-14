@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
 import cmath as cmath
 from scipy import signal
-from scipy.signal import argrelextrema
+#from scipy.signal import argrelextrema
 
 
 datdir = ""

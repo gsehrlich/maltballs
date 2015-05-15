@@ -1,6 +1,6 @@
 #!/usr/bin/ipython
 
-import sendheat, gettemp, sendinput, getoutput
+import sendheat, gettemp, analyzer_comm as comm
 import os, sys
 import datetime
 import time
@@ -21,7 +21,7 @@ params = {
         'accepting_input': False,
         'writing_to_file': False
         }
-commands = ('help', 'stop', 'resume')
+commands = ('help', 'stop', 'resume', 'reconnect')
 
 def make_datafile():
     """Make a timestamped data file for this run and return it"""
@@ -53,7 +53,7 @@ def main():
 
             # Parse and dispatch user requests until done ('resume')
             while params['accepting_input']:
-                user_input = raw_input("Command: ").split(' ')
+                user_input = raw_input("maltballer> ").split(' ')
 
                 # Call a command
                 if user_input[0] in commands:
@@ -89,8 +89,6 @@ def main():
 def run_loop():
     #while temp isn't steady
     while not params['stoploop']:
-        if not params['accepting_input']:
-            print "\tCurrent temperature: %r K" % params['T']
         #fetch curr temp
         params['T'] = gettemp.gettemp()
         
@@ -103,14 +101,18 @@ def run_loop():
         #check if temp has been steady
         params['temp_steady'] = sendheat.is_steady(params['T'])
 
+        params['comm_responding'] = comm.is_responding()
         if params['gathering_data']:
-            #send signal
-            params['input_status'] = sendinput.get_status()
             #fetch data
-            params['out'] = getoutput.getoutput()
+            params['out'] = comm.get_output()
         else:
             params['input_status'] = None
             params['out'] = None
+
+        # display current status to terminal
+        if not params['accepting_input']:
+            print "\tT: %r K;" % params['T'],
+            print "Analyzer responding: %r" % params['comm_responding']
 
         # progressively write to file
         if params['writing_to_file']:
@@ -141,6 +143,12 @@ def call_command(command, args):
             send_help_about(command)
         params["accepting_input"] = False
 
+    elif command == "reconnect":
+        if args:
+            send_help_about(command)
+        print "Reconnecting..."
+        comm.reconnect()
+
     else:
         send_help_about(command)
 
@@ -155,13 +163,19 @@ def send_help_message(message=None):
 def send_help_about(command):
     """Display command-specific help."""
     if command == "help":
-        print "Prints a help message. Ex.:\n" \
-              "    > help\n" \
-              "    > help <command>\n"
+        print "help: Prints a help message. Ex.:\n" \
+              "    maltballer> help\n" \
+              "    maltballer> help <command>\n"
     elif command == "stop":
-        print "Stop the program.\n"
+        print "stop: Stop the program. Ex.:\n" \
+              "    maltballer> stop\n"
     elif command == "resume":
-        print "Stop accepting input and unhide output to the terminal.\n"
+        print "resume: Stop accepting input and unhide output to the " \
+              "terminal. Ex.:\n" \
+              "    maltballer> resume\n"
+    elif command == "reconnect":
+        print "reconnect: Try to reconnect to an analyzer. Ex.\n" \
+              "    maltballer> reconnect\n"
     else:
         print "Command %r not found.\n" % command
 

@@ -15,6 +15,14 @@ import numpy as np
 import warnings
 
 _d = locals()
+vsa_descriptors = ('cur_resource', 'cur_gpib', 'cur_channel', 'cur_idn')
+
+def no_matching_instrument():
+    print "No matching instrument found!"
+    for var in vsa_descriptors:
+        try:
+            del _d[var]
+        except KeyError: pass
 
 def check_gpib_and_channel(model_n="89410A"):
     """Return the names of at least 1 matching instruments, or raise IOError"""
@@ -51,17 +59,22 @@ def check_gpib_and_channel(model_n="89410A"):
 
     else: raise IOError("No matching instruments found!")
 
-# Run it to set local variables appropriately
-check_gpib_and_channel()
+try:
+    check_gpib_and_channel()
+except IOError:
+    no_matching_instrument()
 
 def _ready_to_get_vsa():
-    important_vars = ('cur_resource', 'cur_gpib', 'cur_channel', 'cur_idn')
-    important_vars_in_locals =  [var in _d for var in important_vars]
-    if all(important_vars_in_locals): return True
-    elif not any(important_vars_in_locals): return False
+    vsa_information_in_locals = [var in _d for var in vsa_descriptors]
+    if all(vsa_information_in_locals): return True
+    elif not any(vsa_information_in_locals): return False
     else:
-        check_gpib_and_channel()
-        return _ready_to_get_vsa()
+        print vsa_information_in_locals
+        try:
+            check_gpib_and_channel()
+        except IOError:
+            no_matching_instrument()
+        else: return _ready_to_get_vsa()
 
 def get_vsa(*args):
     """Get the instrument at the specified resource address.
@@ -84,10 +97,16 @@ def get_vsa(*args):
     elif len(args) > 2:
         raise TypeError('get_vsa() takes 0, 1 or 2 arguments (%d given)' %
                         len(args))
-    _d['cur_vsa'] = visa.ResourceManager().get_instrument(address)
+    try:
+        _d['cur_vsa'] = visa.ResourceManager().get_instrument(address)
+    except visa.VisaIOError:
+        print "No instrument found at address %r!" % address
     return _d['cur_vsa']
 
-if _ready_to_get_vsa(): get_vsa()
+# Run it to set local variables appropriately
+if _ready_to_get_vsa():
+    get_vsa()
+    cur_instr = cur_vsa
 
 def use_default_vsa(f):
     """Decorator for use with functions that interface with the VSA.

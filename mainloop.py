@@ -32,7 +32,7 @@ def main():
     print "\nvvv Starting loop vvv\n"
     print "Press Ctrl + C to enter a command"
     t = threading.Thread(target=run_loop, args=(params,))
-    #t.daemon = True
+    t.daemon = True
     t.start()
     # Outer loop, to make sure it's always in a try statement
     while True:

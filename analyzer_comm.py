@@ -2,9 +2,8 @@
 
 try:
 	import vsa_controls as ctrl
-except ImportError:
-	print "No module visa found! Proceeding anyway."
-	ctrl = ImportError("visa")
+except ImportError as ctrl:
+	print ctrl.message + ". Proceeding anyway."
 
 def get_output(): pass
 

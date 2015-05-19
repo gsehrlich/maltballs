@@ -5,7 +5,7 @@ try:
 except ImportError as ctrl:
 	print ctrl.message + ". Proceeding anyway."
 
-def get_output(): pass
+def get_output(): return ctrl.get_data()
 
 if not isinstance(ctrl, Exception):
 	def is_responding():

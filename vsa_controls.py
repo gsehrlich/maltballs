@@ -206,7 +206,7 @@ def freq_range(*args, **kwargs):
     if 'stop' in kwargs:
         vsa.write('freq:stop %s' % kwargs['stop'])
     if 'center' in kwargs:
-        vsa.write('freq:cent %s' % kwargs['cent'])
+        vsa.write('freq:cent %s' % kwargs['center'])
     if 'span' in kwargs:
         vsa.write('freq:span %s' % kwargs['span'])
     if 'n' in kwargs:

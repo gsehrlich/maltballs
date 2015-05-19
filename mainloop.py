@@ -16,24 +16,23 @@ params = {
         'temp_steady': False,
         'gathering_data': False,
         'stoploop': False,
-        'fmt': "%s\t%s\t%s\t%s\n",
         'dt': 1,
         'accepting_input': False,
-        'writing_to_file': False
+        'writing_to_file': False,
+        'comm_responding': False,
+        'out': None,
+        'freq': None
         }
-commands = ('help', 'stop', 'resume', 'reconnect')
+commands = ('help', 'stop', 'resume', 'reconnect', 'getdata')
 
-def make_datafile():
-    """Make a timestamped data file for this run and return it"""
-    pass
+def make_data_file_name():
+    """Make a timestamped data file name for this run and return it"""
+    filename_fmt = "data/%04d-%02d-%02d %02d.%02d.%02d"
+    t = datetime.datetime.now()
+    return filename_fmt % (t.year, t.month, t.day, t.hour, t.minute, t.second)
 
 def main():
     """Start data gathering and PID thread, and get user input"""
-
-    # Get data file
-    if params['writing_to_file']:
-        params['f'] = make_datafile()
-        print "Writing in file %r" % f.name
 
     print "\nvvv Starting loop vvv\n"
     print "Press Ctrl + C to enter a command"
@@ -72,7 +71,8 @@ def main():
                         else:
                             send_help_message("Equals what?")
                     else:
-                        send_help_message("Parameter %r not found." % param)
+                        send_help_message("Parameter %r not found." %
+                                          user_input[0])
 
                 # Request not understood
                 else: send_help_message("Syntax %r not understood." %
@@ -103,8 +103,17 @@ def run_loop():
 
         params['comm_responding'] = comm.is_responding()
         if params['gathering_data']:
-            #fetch data
-            params['out'] = comm.get_output()
+            # Do it just once
+            params['gathering_data'] = False
+            if params['comm_responding']:
+                # Also write to file
+                params['writing_to_file'] = True
+                # fetch data
+                params['out'] = comm.get_output()
+                params['freq'] = comm.ctrl.freq_range()
+                print "Done!"
+            else:
+                print "Analyzer not responding!"
         else:
             params['input_status'] = None
             params['out'] = None
@@ -116,9 +125,15 @@ def run_loop():
 
         # progressively write to file
         if params['writing_to_file']:
-            to_write = params['fmt'] % (params['T'], params['heat_sent'],
-                    params['input_status'], params['out'])
-            params['f'].write(to_write)
+            # Do it just once
+            params['writing_to_file'] = False
+            filename = make_data_file_name()
+            print "Writing to file %r..." % filename,
+            np.savetxt(filename, zip(params['freq'], params['out']),
+            #    header="# Temperature: %s K\n" % params['T'])
+            # not supported in version of python that's on lab computer...
+)
+            print "Done!"
 
         # wait for dt milliseconds
         time.sleep(params['dt'])
@@ -133,21 +148,33 @@ def call_command(command, args):
     elif command == "stop":
         if args:
             send_help_about(command)
-        s = raw_input("Are you sure? (y/[n]) ")
-        if len(s) > 0 and s[0] == 'y':
-            params["accepting_input"] = False
-            params["stoploop"] = True 
+        else:
+            s = raw_input("Are you sure? (y/[n]) ")
+            if len(s) > 0 and s[0] == 'y':
+                params["accepting_input"] = False
+                params["stoploop"] = True 
 
     elif command == "resume":
         if args:
             send_help_about(command)
-        params["accepting_input"] = False
+        else:
+            params["accepting_input"] = False
 
     elif command == "reconnect":
         if args:
             send_help_about(command)
-        print "Reconnecting..."
-        comm.reconnect()
+        else:
+            print "Reconnecting..."
+            comm.reconnect()
+
+    elif command == "getdata":
+        if args:
+            send_help_about(command)
+        else:
+            print "Gathering data...",
+            params['gathering_data'] = True
+            # So that message from other thread appears before cmd prompt
+            time.sleep(2*params['dt'])
 
     else:
         send_help_about(command)
@@ -176,6 +203,9 @@ def send_help_about(command):
     elif command == "reconnect":
         print "reconnect: Try to reconnect to an analyzer. Ex.\n" \
               "    maltballer> reconnect\n"
+    elif command == "getdata":
+        print "getdata: Request freq, power data from the analyzer. Ex.\n" \
+              "    maltballer> getdata\n"
     else:
         print "Command %r not found.\n" % command
 

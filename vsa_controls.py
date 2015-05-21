@@ -24,7 +24,7 @@ def no_matching_instrument():
             del _d[var]
         except KeyError: pass
 
-def check_gpib_and_channel(model_n="89410A"):
+def check_gpib_and_channel(model_nums=["89410A", "4395A"]):
     """Return the names of at least 1 matching instruments, or raise IOError"""
     s = r"gpib(.*)::(.*)::instr"
     matching_instrs = {}
@@ -33,9 +33,10 @@ def check_gpib_and_channel(model_n="89410A"):
         m = re.match(s, resource, re.IGNORECASE)
         if m:
             idn = rm.get_instrument(resource).query("*IDN?")
-            if model_n in idn:
-                gpib, channel = map(int, m.groups())
-                matching_instrs[resource] = (gpib, channel), idn
+            for model_n in model_nums:
+                if model_n in idn:
+                    gpib, channel = map(int, m.groups())
+                    matching_instrs[resource] = (gpib, channel), idn
 
     if matching_instrs:
         for instr in matching_instrs.keys():

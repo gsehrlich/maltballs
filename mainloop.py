@@ -52,31 +52,36 @@ def main():
 
             # Parse and dispatch user requests until done ('resume')
             while params['accepting_input']:
-                user_input = raw_input("maltballer> ").split(' ')
+                # Wait until data gathering is done before accepting input
+                if params['gathering_data']:
+                    time.sleep(0.1)
+                else:
+                    user_input = raw_input("maltballer> ").split(' ')
 
-                # Call a command
-                if user_input[0] in commands:
-                    call_command(user_input[0], user_input[1:])
+                    # Call a command
+                    if user_input[0] in commands:
+                        call_command(user_input[0], user_input[1:])
 
-                # Query a parameter
-                elif len(user_input) == 1 and user_input[0] in params:
-                    print "\t%s: %r" % (user_input[0], params[user_input[0]])
+                    # Query a parameter
+                    elif len(user_input) == 1 and user_input[0] in params:
+                        print "\t%s: %r" % (user_input[0],
+                            params[user_input[0]])
 
-                # Set a parameter manually
-                elif len(user_input) >= 2 and user_input[1] == '=':
-                    if user_input[0] in params:
-                        param = user_input[0]
-                        if len(user_input) == 3:
-                            set_param(param, user_input[2])
+                    # Set a parameter manually
+                    elif len(user_input) >= 2 and user_input[1] == '=':
+                        if user_input[0] in params:
+                            param = user_input[0]
+                            if len(user_input) == 3:
+                                set_param(param, user_input[2])
+                            else:
+                                send_help_message("Equals what?")
                         else:
-                            send_help_message("Equals what?")
-                    else:
-                        send_help_message("Parameter %r not found." %
-                                          user_input[0])
+                            send_help_message("Parameter %r not found." %
+                                              user_input[0])
 
-                # Request not understood
-                else: send_help_message("Syntax %r not understood." %
-                        ' '.join(user_input))
+                    # Request not understood
+                    else: send_help_message("Syntax %r not understood." %
+                            ' '.join(user_input))
 
             # Stop the loop, if instructed, or else resume sleeping
             if params['stoploop']:
@@ -84,7 +89,6 @@ def main():
                 break
             else:
                 print "\n\nvvv Resuming loop output. vvv\n"
-                params['accepting_input'] = False
 
 def run_loop():
     #while temp isn't steady
@@ -103,17 +107,20 @@ def run_loop():
 
         params['comm_responding'] = comm.is_responding()
         if params['gathering_data']:
-            # Do it just once
-            params['gathering_data'] = False
             if params['comm_responding']:
-                # Also write to file
-                params['writing_to_file'] = True
                 # fetch data
                 params['out'] = comm.get_output()
-                params['freq'] = comm.ctrl.freq_range()
-                print "Done!"
+                params['freq'] = comm.get_freq()
+
+                # If output successful:
+                if not isinstance(params['out'], Exception):
+                    params['writing_to_file'] = True
+                    print "Done!"
+                else: print "No file written."
             else:
                 print "Analyzer not responding!"
+            # Do it just once
+            params['gathering_data'] = False
         else:
             params['input_status'] = None
             params['out'] = None
@@ -173,8 +180,6 @@ def call_command(command, args):
         else:
             print "Gathering data...",
             params['gathering_data'] = True
-            # So that message from other thread appears before cmd prompt
-            time.sleep(2*params['dt'])
 
     else:
         send_help_about(command)

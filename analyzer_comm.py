@@ -5,7 +5,21 @@ try:
 except ImportError as ctrl:
 	print ctrl.message + ". Proceeding anyway."
 
-def get_output(): return ctrl.get_data()
+def get_output():
+	try:
+		data = ctrl.get_data()
+	except ctrl.visa.VisaIOError as e:
+		print "Error encountered in comm:\n %r" % e.message
+		return e
+	return data
+
+def get_freq():
+	try:
+		data = ctrl.freq_range()
+	except ctrl.visa.VisaIOError as e:
+		print "Error encountered in comm:\n %r" % e.message
+		return e
+	return data
 
 if not isinstance(ctrl, Exception):
 	def is_responding():

@@ -21,9 +21,10 @@ params = {
         'writing_to_file': False,
         'comm_responding': False,
         'out': None,
-        'freq': None
+        'freq': None,
+        'data_comment': ''
         }
-commands = ('help', 'stop', 'resume', 'reconnect', 'getdata')
+commands = ('help', 'stop', 'resume', 'reconnect', 'getdata', 'freq')
 
 def make_data_file_name():
     """Make a timestamped data file name for this run and return it"""
@@ -116,7 +117,10 @@ def run_loop():
                 if not isinstance(params['out'], Exception):
                     params['writing_to_file'] = True
                     print "Done!"
-                else: print "No file written."
+                else:
+                    print "No file written."
+                    # Reset so it doesn't appear on the next file write
+                    params["data_comment"] = ''
             else:
                 print "Analyzer not responding!"
             # Do it just once
@@ -136,13 +140,18 @@ def run_loop():
             params['writing_to_file'] = False
             filename = make_data_file_name()
             print "Writing to file %r..." % filename,
-            np.savetxt(filename, zip(params['freq'], params['out']),
-            #    header="# Temperature: %s K\n" % params['T'])
-            # not supported in version of python that's on lab computer...
-)
+            # params['out'] should be a single numpy array
+            arrays_to_write = (params['freq'], params['out'])
+            header="Temperature: %s K" % params['T']
+            if params["data_comment"]:
+                header = params["data_comment"] + '\n' + header
+                # reset comment
+                params["data_comment"] = ''
+            # header not supported in version of NumPy in lab...
+            np.savetxt(filename, zip(*arrays_to_write), header=header)
             print "Done!"
 
-        # wait for dt milliseconds
+        # wait for dt seconds
         time.sleep(params['dt'])
 
 def call_command(command, args):
@@ -175,11 +184,19 @@ def call_command(command, args):
             comm.reconnect()
 
     elif command == "getdata":
+        print "Gathering data...",
+        params['gathering_data'] = True
         if args:
+            params['data_comment'] = ' '.join(args)
+
+    elif command == "freq":
+        if len(args) < 2:
             send_help_about(command)
         else:
-            print "Gathering data...",
-            params['gathering_data'] = True
+            param = args[0]
+            val = ' '.join(args[1:])
+            print "Setting %s to %s" % (param, val)
+            comm.set_freq(**{param: val})
 
     else:
         send_help_about(command)
@@ -210,7 +227,8 @@ def send_help_about(command):
               "    maltballer> reconnect\n"
     elif command == "getdata":
         print "getdata: Request freq, power data from the analyzer. Ex.\n" \
-              "    maltballer> getdata\n"
+              "    maltballer> getdata\n" \
+              "    maltballer> getdata This is a gain measurement"
     else:
         print "Command %r not found.\n" % command
 

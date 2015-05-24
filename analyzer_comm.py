@@ -21,6 +21,12 @@ def get_freq():
 		return e
 	return data
 
+def set_freq(**kwargs):
+	try:
+		ctrl.freq_range(**kwargs)
+	except ctrl.visa.VisaIOError as e:
+		print "Error encountered in comm:\n %r" % e.message
+
 if not isinstance(ctrl, Exception):
 	def is_responding():
 		try:

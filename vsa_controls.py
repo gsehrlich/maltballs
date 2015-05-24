@@ -1,12 +1,7 @@
 """Functions for interacting with vector spectrum analyzer
 
 Basic usage: import, check that it found the right thing, and then call
-functions as needed:
-
-    set_source(vsa=None, func=None, freq=None, volt=None)
-    source_on(vsa=None)
-    source_off(vsa=None)
-"""
+functions as needed."""
 
 import visa
 import re
@@ -81,7 +76,7 @@ def get_vsa(*args):
     """Get the instrument at the specified resource address.
 
     1. Use the full address:
-         get_vsa('gpib1::1::instr')
+         get_vsa('gpib0::1::instr')
     2. Pass the GPIB card number and the channel:
          get_vsa(1, 1)
     3. Use whatever resource is current:
@@ -189,6 +184,15 @@ def freq_range(*args, **kwargs):
         kwargs['vsa'] = None
     vsa = kwargs['vsa']
 
+    # Check if default instrument is vector signal analyzer or network analyzer
+    instr_type = ("vsa" if "89410A" in _d['cur_idn'] else
+                  "na" if "4395A" in _d['cur_idn'] else
+                  NotImplemented)
+    # Set up initial frequency and #points strings
+    # (VSA and NA have different protocols)
+    freq_s = "freq:" if instr_type == "vsa" else ""
+    poin_s = "swe:" if instr_type == "vsa" else ""
+
     # Make sure parameters are sensible
     if len(args) > 2:
         raise TypeError('freq_range() takes 0, 1 or 2 arguments (%d given)' %
@@ -203,22 +207,23 @@ def freq_range(*args, **kwargs):
     elif len(args) == 2:
         kwargs['start'], kwargs['stop'] = args
     if 'start' in kwargs:
-        vsa.write('freq:star %s' % kwargs['start'])
+        vsa.write(freq_s + 'star %s' % kwargs['start'])
     if 'stop' in kwargs:
-        vsa.write('freq:stop %s' % kwargs['stop'])
+        vsa.write(freq_s + 'stop %s' % kwargs['stop'])
     if 'center' in kwargs:
-        vsa.write('freq:cent %s' % kwargs['center'])
+        vsa.write(freq_s + 'cent %s' % kwargs['center'])
     if 'span' in kwargs:
-        vsa.write('freq:span %s' % kwargs['span'])
+        vsa.write(freq_s + 'span %s' % kwargs['span'])
     if 'n' in kwargs:
-        vsa.write('swe:poin %d' % kwargs['n'])
-        if kwargs['n'] not in (401, 801, 1601):
+        vsa.write(poin_s + 'poin %s' % kwargs['n'])
+        if instr_type == "vsa" and kwargs['n'] not in (401, 801, 1601) or \
+           instr_type == "na" and kwargs['n'] > 801:
             warnings.warn("Number of points %r not allowed. Value set to %r" %
                           (kwargs['n'], vsa.query_ascii_values('swe:poin?')[0]),
                           stacklevel=2)
-    start, = vsa.query_ascii_values('freq:star?')
-    stop, = vsa.query_ascii_values('freq:stop?')
-    n, = vsa.query_ascii_values('swe:poin?')
+    start, = vsa.query_ascii_values(freq_s + 'star?')
+    stop, = vsa.query_ascii_values(freq_s + 'stop?')
+    n, = vsa.query_ascii_values(poin_s + 'poin?')
     return np.linspace(start, stop, n, endpoint=True)
 
 @use_default_vsa
@@ -240,4 +245,10 @@ def set_averaging(n=None, vsa=None):
 @use_default_vsa
 def get_data(vsa=None):
     """Get data from vector signal analyzer."""
-    return vsa.query_ascii_values('calc:data?')
+    # Check if default instrument is vector signal analyzer or network analyzer
+    if "89410A" in _d['cur_idn']:
+        return np.array(vsa.query_ascii_values('calc:data?'))
+    elif "4395A" in _d['cur_idn']:
+        # Alternate values are always zero for some reason.
+        # Switch channels (press buttons on machine) to switch gain/phase
+        return np.array(vsa.query_ascii_values('outpdtrc?')[::2])

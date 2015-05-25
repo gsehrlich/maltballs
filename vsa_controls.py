@@ -131,14 +131,20 @@ def set_source(func=None, freq=None, volt=None, vsa=None):
 
     type: 'rand' or 'sin'
     freq: e.g. '200 kHz' or '.5MHz'
-    ampl: e.g. '-5 dBm' or '5 mV'
+    volt: e.g. '-5 dBm' or '5 mV'
     """
+    if func == "chirp": func = "pch"
+
     if func is not None:
         vsa.write("sour:func %s" % func)
     if freq is not None:
         vsa.write("sour:freq %s" % freq)
     if volt is not None:
         vsa.write("sour:volt %s" % volt)
+
+    if func == "pch":
+        vsa.write("wind unif")
+        vsa.write("band:mode:arb on")
 
 @use_default_vsa
 def source_on(vsa=None):
@@ -211,7 +217,16 @@ def freq_range(*args, **kwargs):
     if 'stop' in kwargs:
         vsa.write(freq_s + 'stop %s' % kwargs['stop'])
     if 'center' in kwargs:
-        vsa.write(freq_s + 'cent %s' % kwargs['center'])
+        if kwargs['center'] == 'marker':
+            if instr_type == 'na':
+                vsa.write("seam max")
+                vsa.write("mkrcent")
+            elif instr_type == 'vsa':
+                vsa.write("calc1:mark:max")
+                argmax_str = vsa.query_ascii_values('calc1:mark:x?')[0]
+                vsa.write(freq_s + 'cent %s' % argmax_str)
+        else:
+            vsa.write(freq_s + 'cent %s' % kwargs['center'])
     if 'span' in kwargs:
         vsa.write(freq_s + 'span %s' % kwargs['span'])
     if 'n' in kwargs:
@@ -225,6 +240,12 @@ def freq_range(*args, **kwargs):
     stop, = vsa.query_ascii_values(freq_s + 'stop?')
     n, = vsa.query_ascii_values(poin_s + 'poin?')
     return np.linspace(start, stop, n, endpoint=True)
+
+@use_default_vsa
+def center_on_peak(vsa=None):
+    """Find the peak and center the frequency window on it"""
+    vsa.write("seam max")
+    vsa.write("mkrcent")
 
 @use_default_vsa
 def freq_auto_stepsize(vsa=None):

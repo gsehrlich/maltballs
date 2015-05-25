@@ -24,7 +24,7 @@ params = {
         'freq': None,
         'data_comment': ''
         }
-commands = ('help', 'stop', 'resume', 'reconnect', 'getdata', 'freq')
+commands = ('help', 'stop', 'resume', 'reconnect', 'getdata', 'freq', 'loop')
 
 def make_data_file_name():
     """Make a timestamped data file name for this run and return it"""
@@ -106,12 +106,15 @@ def run_loop():
         #check if temp has been steady
         params['temp_steady'] = sendheat.is_steady(params['T'])
 
-        params['comm_responding'] = comm.is_responding()
+        if not params['accepting_input']:
+            params['comm_responding'] = comm.is_responding()
         if params['gathering_data']:
             if params['comm_responding']:
                 # fetch data
                 params['out'] = comm.get_output()
                 params['freq'] = comm.get_freq()
+                # center peak, for next time
+                comm.set_freq(center="marker")
 
                 # If output successful:
                 if not isinstance(params['out'], Exception):
@@ -182,6 +185,7 @@ def call_command(command, args):
         else:
             print "Reconnecting..."
             comm.reconnect()
+            params['comm_responding'] = comm.is_resonding()
 
     elif command == "getdata":
         print "Gathering data...",
@@ -198,8 +202,25 @@ def call_command(command, args):
             print "Setting %s to %s" % (param, val)
             comm.set_freq(**{param: val})
 
+    elif command == "loop":
+        if len(args) != 2:
+            send_help_about(command)
+        else:
+            dt = float(args[0])
+            cmd = args[1]
+            if cmd == "loop": send_help_about(command)
+            else:
+                t = threading.Thread(target=loop_command, args=(dt, cmd))
+                t.daemon = True
+                t.start()
+
     else:
         send_help_about(command)
+
+def loop_command(dt, cmd):
+    while True:
+        call_command(cmd, ())
+        time.sleep(dt)
 
 def send_help_message(message=None):
     if message is not None: print str(message) + "\n"
@@ -226,9 +247,16 @@ def send_help_about(command):
         print "reconnect: Try to reconnect to an analyzer. Ex.\n" \
               "    maltballer> reconnect\n"
     elif command == "getdata":
-        print "getdata: Request freq, power data from the analyzer. Ex.\n" \
+        print "getdata: Center peak, then request freq, power data from the" \
+              " analyzer. Ex.\n" \
               "    maltballer> getdata\n" \
               "    maltballer> getdata This is a gain measurement"
+    elif command == "loop":
+        print "loop: Repeat a command periodically. Ex. Get data every" \
+              " minute:\n" \
+              "    maltballer> loop 60 getdata\n" \
+              " Cannot loop a loop!"
+
     else:
         print "Command %r not found.\n" % command
 

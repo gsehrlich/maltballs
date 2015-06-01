@@ -25,6 +25,7 @@ def log(s):
         f.writeline(s)
 
 time_fmt = "%04d-%02d-%02d %02d.%02d.%02d"
+dt = 1 # how often to check whether to stop
 
 def now():
     return tuple(datetime.datetime.now().timetuple())
@@ -67,3 +68,9 @@ def q_cmds():
 
     if 'dt' not in q_globals: q_globals['dt'] = 1
     time.sleep(q_globals['dt'])
+
+while True:
+    time.sleep(dt)
+    with open('run_loop_instructions.txt') as f:
+        if "stop" in f:
+            break

@@ -1,0 +1,1 @@
+# put a single line containing "stop" below to stop the loop

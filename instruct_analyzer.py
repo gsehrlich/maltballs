@@ -4,7 +4,7 @@ import time
 import datetime
 import record_temp
 
-span = 20 	# hz
+span = 20     # hz
 N_data_points = 101
 na_gpib_addr = 'gpib0::17::instr' # network analyzer
 volt_source_gpib_addr = "gpib0::5::instr" # voltage source for DC bias
@@ -19,44 +19,45 @@ direc = "data/run2/"
 dt = 1 # sec; measurement itself takes long enough
 
 def now():
-	return tuple(datetime.datetime.now().timetuple()[:6])
+    return tuple(datetime.datetime.now().timetuple()[:6])
 
 def get_gain_phase():
-	na.write('chan1') # gain data
-	gain = np.array([float(g) for g in na.query_ascii_values('outpdtrc?')[::2]])
-	na.write('chan2') # phase data
-	phase = np.array([float(g) for g in na.query_ascii_values('outpdtrc?')[::2]])
-	return gain, phase
+    na.write('chan1') # gain data
+    gain = np.array([float(g) for g in na.query_ascii_values('outpdtrc?')[::2]])
+    na.write('chan2') # phase data
+    phase = np.array([float(g) for g in na.query_ascii_values('outpdtrc?')[::2]])
+    return gain, phase
 
 def take_measurement(if_bw, freq_arr, DC_on, DC_bias):
-	# get one measurement
-	T_V_start = record_temp.read_voltage()
-	time_started = now()
-	na.write('sing')
-	time.sleep(measurement_wait[if_bw])
-	time_finished = now()
-	T_V_stop = record_temp.read_voltage()
+    # get one measurement
+    T_V_start = record_temp.read_voltage()
+    time_started = now()
+    na.write('sing')
+    time.sleep(measurement_wait[if_bw])
+    time_finished = now()
+    T_V_stop = record_temp.read_voltage()
 
-	# get gain + phase and write to file
-	gain, phase = get_gain_phase()
-	filename = direc + "%dhz_%s/" % (if_bw, "osc" if DC_on else "ref")
-	filename += time_fmt % time_started
-	header = "Time finished:\n" + \
-             time_fmt % time_finished + "\n" + \
-             "Temp volt start:" + \
-             str(T_V_start) + \
-             "Temp volt stop:" + \
-			 str(T_V_start) + \
-             "Approx start T:" + \
-             str(record_temp.get_temp(T_V_start)) + \
-             "Approx stop T:" + \
-             str(record_temp.get_temp(T_V_stop)) + \
-             "DC bias:" + \
-             str(DC_bias)
-	np.savetxt(filename, zip(freq_arr, gain, phase), header=header)
+    # get gain + phase and write to file
+    gain, phase = get_gain_phase()
+    filename = direc + "%dhz_%s/" % (if_bw, "osc" if DC_on else "ref")
+    filename += time_fmt % time_started
+    header_lines = ["Time finished:",
+                    time_fmt % time_finished,
+                    "Temp volt start:",
+                    str(T_V_start),
+                    "Temp volt stop:",
+                    str(T_V_start),
+                    "Approx start T:",
+                    str(record_temp.get_temp(T_V_start)),
+                    "Approx stop T:",
+                    str(record_temp.get_temp(T_V_stop)),
+                    "DC bias:",
+                    str(DC_bias)]
+    header = '\n'.join(header_lines)
+    np.savetxt(filename, zip(freq_arr, gain, phase), header=header)
 
 def get_DC_bias():
-	return float(volt_source.query('meas?'))
+    return float(volt_source.query('meas?'))
 
 # get network analyzer and voltage source
 rm = visa.ResourceManager()
@@ -68,6 +69,13 @@ volt_source = rm.get_instrument(volt_source_gpib_addr)
 na.write('span %d' % span)
 na.write('poin %d' % N_data_points)
 volt_source.write('oupt on')
+
+# autoscale so display is readable
+na.write("chan1")
+na.write("auto")
+na.write("chan2")
+na.write("auto")
+na.write("chan1")
 
 # find peak freq
 na.write('seam max'); na.write('mkrcent')

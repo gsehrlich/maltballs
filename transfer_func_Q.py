@@ -14,14 +14,21 @@ import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
 import cmath as cmath
 from scipy import signal
+import os
 #from scipy.signal import argrelextrema
 
 
 datdir = ""
 
 datfiles = ("sampledata.txt",)
+os.chdir("/Users/marielu/Documents/Stanford/Physics_108/maltballs/data/Run1/Good/")
+
+n = len(os.listdir('.'))
+
+
 
 allQ = []
+allfreq = []
 allQ_std = []
 all_noise = []
 all_noise_omega = []
@@ -43,49 +50,60 @@ def Lorentzian (x, A, B, x0):
 def noise(phi, omega):
     return (4*k_b*T*(omega_0**2)*phi)/(omega*(((omega_0**2)-m*(omega**2))**2+(omega_0**2)*(phi**2)))
 
-for ii in range(len(datfiles)):
-    
-    datfile = datfiles[ii]
-    cdat = np.loadtxt(datdir+datfile)
-    
-    cdat[:, 1] = np.power(10, (cdat[:,1]-30)/10)
-
-    '''
-    fig2 = plt.figure(2)
-    plt.plot(cdat[10:,0], cdat[10:,1])
+init = [1E-5, 1E-1, 2.318E5]
+for filename in os.listdir('.'):
+    if (filename[0] == '.'):
+        continue
+    #datfile = datfiles[ii]
+    #print filename
+    file = np.loadtxt(filename)
+    freq = file[:,0]
+    data = file[:,1]
+    fig5 = plt.figure(5)
+    plt.plot(freq, data)
     plt.show()
-    '''
+    data = np.power(10, (data-30)/10)
+
+
+    fig2 = plt.figure(2)
+    plt.plot(freq[100:220], data[100:220])
+    plt.show()
+
     
     
-    init = [1E2, 1, 3E5]
-    #init = [0, 0, 0, 0, 0]
-    
-    coef, cov= sp.optimize.curve_fit(Lorentzian, cdat[10:,0], cdat[10:,1])
-    print coef
+    coef, cov= sp.optimize.curve_fit(Lorentzian, freq[100: 220], data[100: 220], init)
+    #print coef
     hw = coef[1]
-    print hw
     omega_0 = coef[2]
-    print cov
     
     ##### find x value that corresponds to half max on left and right half
+    #print Q_fac(hw, omega_0)
     allQ.append(Q_fac(hw, omega_0))
-    allQ_std.append(2*omega_0*np.sqrt(cov[1][1])/(hw**2))
+    allfreq.append(omega_0)
+    #allQ_std.append(2*omega_0*np.sqrt(cov[1][1])/(hw**2))
     #all_noise_omega.append(coef[2])
     #all_noise.append(noise(1/Q_fac(hw, omega_0), coef[2]))
     
     fig1 = plt.figure(1)
-    plt.plot(cdat[10:,0], cdat[10:,1])
-    plt.plot(cdat[:,0], Lorentzian(cdat[:,0], coef[0], coef[1], coef[2]))
-    plt.plot(cdat[:,0], Lorentzian(cdat[:,0], 1E2, 1.038E4, 2.8238E5))
+    plt.plot(freq[100:300], data[100:300])
+    plt.plot(freq, Lorentzian(freq, coef[0], coef[1], coef[2]))
     plt.xlabel("Frequency (Hz)")
     plt.ylabel("Power")
     plt.show()
+    init = coef
+
+
+fig3 = plt.figure(3)
+plt.plot(allQ)
+fig4 = plt.figure(4)
+plt.plot(allfreq)
+plt.show()
 
 
 
-for kk in range(len(allQ)):
+'''for kk in range(len(allQ)):
     
-    print allQ[kk], allQ_std[kk]
+    print allQ[kk]#, allQ_std[kk]
     print (1/R)*(L/C)**.5
-    print omega_0*2*math.pi*L/R
+    print omega_0*2*math.pi*L/R'''
 

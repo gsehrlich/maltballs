@@ -2,13 +2,13 @@ import visa
 import numpy as np
 import time
 import datetime
+import record_temp
 
 span = 20 	# hz
 N_data_points = 101
 gpib_addr = 'gpib0::17::instr'
 keep_peak_at_dbm = -40
-wait_30hz = 11.83 + 1
-wait_10hz = 47.58 + 1
+measurement_wait = {30: 11.83 + 1, 10: 47.58 + 1}
 time_fmt = "%04d-%02d-%02d %02d.%02d.%02d"
 direc = "data/run2/"
 
@@ -22,6 +22,25 @@ def get_gain_phase():
 	phase = np.array([float(g) for g in na.query_ascii_values('outpdtrc?')[::2]])
 	return gain, phase
 
+def take_measurement(if_bw, DC_on=True):
+	# get one measurement
+	T_V_start = record_temp.read_voltage()
+	time_started = now()
+	na.write('sing')
+	time.sleep(measurement_wait[if_bw])
+	time_finished = now()
+	T_V_stop = record_temp.read_voltage()
+
+	# get gain + phase and write to file
+	gain, phase = get_gain_phase()
+	filename = direc + "%dhz_%s/" % (if_bw, "gain" if DC_on else "ref")
+	fiename += time_fmt % time_started
+	header = "Time finished, temp volt start, temp volt stop:\n"
+	header += time_fmt % time_finished
+	header += str(T_V_start)
+	header += str(T_V_start)
+	np.savetxt(filename, zip(freq_arr, gain, phase), header=header)
+
 # get instrument
 na = visa.ResourceManager().get_instrument(gpib_addr)
 
@@ -29,9 +48,8 @@ na = visa.ResourceManager().get_instrument(gpib_addr)
 na.write('span %d' % span)
 na.write('poin %d' % N_data_points)
 
-# find peak freq, then set bw back to 30 hz
+# find peak freq
 na.write('seam max'); na.write('mkrcent')
-na.write('bw 30')
 
 # get freq array
 start = float(na.query('star?'))
@@ -45,32 +63,16 @@ max_gain = float(na.query_ascii_values('outpmkr?')[0])
 new_source_dbm = keep_peak_at_dbm - max_gain
 na.write('powe %f' % new_source_dbm)
 
-# get one measurement
-time_started = now()
-na.write('sing')
-time.sleep(wait_30hz)
-time_finished = now()
+# get measurement at 30 hz
+na.write('bw 30')
+take_measurement(30)
 
-# get gain + phase and write to file
-gain, phase = get_gain_phase()
-filename = direc + "30hz/" + time_fmt % time_started
-header = "Time finished\n" + time_fmt % time_finished
-np.savetxt(filename, zip(freq_arr, gain, phase), header=header)
+# get 30 hz reference gain
 
-# set bw to 10 hz
+
+# get measurement at 10 hz
 na.write('bw 10')
-
-# get next measurement
-time_started = now()
-na.write('sing')
-time.sleep(wait_10hz)
-time_finished = now()
-
-# get gain + phase
-gain, phase = get_gain_phase()
-filename = direc + "10hz/" + time_fmt % time_started
-header = "Time finished\n" + time_fmt % time_finished
-np.savetxt(filename, zip(freq_arr, gain, phase), header=header)
+take_measurement(10)
 
 # set bw back to 100 hz and run cont
 na.write('bw 100')

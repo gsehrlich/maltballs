@@ -21,7 +21,7 @@ import datetime
 import time
 
 log = open('run2/output.log', 'a+')
-time_fmt = "%d-%d-%d %d.%d.%d"
+time_fmt = "%04d-%02d-%02d %02d.%02d.%02d"
 
 def now():
     return tuple(datetime.datetime.now().timetuple())

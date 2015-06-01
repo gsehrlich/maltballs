@@ -264,7 +264,7 @@ switch tools.analyzer.instr
 
     source = kpib(tools.analyzer.instr,tools.analyzer.gpib,'source?',0,0,0,verbose);
     retval.source = source.level;
-    [retval.bandwidth retval.Q retval.equ_circuit retval.db retval.phase_shift]=bandqr(retval);
+    %[retval.bandwidth retval.Q retval.equ_circuit retval.db retval.phase_shift]=bandqr(retval);
 
     % pause the instrument
     kpib(tools.analyzer.instr,tools.analyzer.gpib,'pause',0,0,0,verbose);
@@ -390,7 +390,7 @@ switch tools.analyzer.instr
         source = kpib(tools.analyzer.instr,tools.analyzer.gpib,'source?',0,0,0,verbose);
         retval.source = source.level;
         %[retval.bandwidth retval.Q retval.motional]=bandq(retval.trace1.x,retval.trace1.y,retval.mark1.x);
-        [retval.bandwidth retval.Q retval.equ_circuit retval.db retval.phase_shift]=bandqr(retval);
+        %[retval.bandwidth retval.Q retval.equ_circuit retval.db retval.phase_shift]=bandqr(retval);
 
         % get the units
         % NB: units are being phased out. Units are now part of the trace field

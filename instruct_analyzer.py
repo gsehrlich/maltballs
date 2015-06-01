@@ -87,7 +87,7 @@ stop = float(na.query('stop?'))
 freq_arr = np.linspace(start, stop, N_data_points)
 
 # find peak val, then scale input voltage to keep const
-na.write('seam peak')
+na.write('seam max')
 max_gain = float(na.query_ascii_values('outpmkr?')[0])
 # source_dbm + max_gain should be == keep_peak_at_dbm
 new_source_dbm = keep_peak_at_dbm - max_gain

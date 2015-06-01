@@ -20,24 +20,25 @@ import subprocess
 import datetime
 import time
 
-log = open('run2/output.log', 'a+')
+def log(s):
+    with open('run2/output.log', 'a') as f:
+        f.writeline(s)
+
 time_fmt = "%04d-%02d-%02d %02d.%02d.%02d"
+dt = 1 # how often to check whether to stop
 
 def now():
     return tuple(datetime.datetime.now().timetuple())
 
 analyzer_thread = threading.Thread(target=analyzer_cmds, args=())
-t_thread = threading.Thread(target=t_cmds, args=())
 q_thread = threading.Thread(target=q_cmds, args=())
 analyzer_thread.daemon = True
-t_thread.daemon = True
 q_thread.daemon = True
 analyzer_thread.start()
-t_thread.start()
 q_thread.start()
 
 def analyzer_cmds():
-    log.writeline(subprocess.check_output(["git", "pull"]))
+    log(subprocess.check_output(["git", "pull"]))
 
     analyzer_globals = {}
 
@@ -45,21 +46,31 @@ def analyzer_cmds():
         try:
             execfile("instruct_analyzer.py", globals=analyzer_globals)
         except Exception as e:
-            log.writeline(e.message)
+            log(e.message)
 
-        log.writeline(time_fmt % now())
+        log(time_fmt % now())
 
-        log.writeline(subprocess.check_output(["git", "add", "."]))
-        log.writline(subprocess.check_output(["git", "commit", "-m", '"data taken"',
+        log(subprocess.check_output(["git", "add", "."]))
+        log(subprocess.check_output(["git", "commit", "-m", '"data taken"',
             "."])
-        log.writeline(subprocess.check_output(["git", "push", "origin", "master"]))
+        log(subprocess.check_output(["git", "push", "origin", "master"]))
 
-        if 'dt' not in analyzer_globals: analyzer_globals['dt'] = 120
+        if 'dt' not in analyzer_globals: analyzer_globals['dt'] = 1
         time.sleep(analyzer_globals['dt'])
 
-def t_cmds():
+def q_cmds():
+    q_globals = {}
     while True:
         try:
-            execfile("record_temp.py")
+            execfile("transfer_func_Q.py", globals=q_globals)
         except Exception as e:
-            log.writeline(e.message)
+            log(e.message)
+
+    if 'dt' not in q_globals: q_globals['dt'] = 1
+    time.sleep(q_globals['dt'])
+
+while True:
+    time.sleep(dt)
+    with open('run_loop_instructions.txt') as f:
+        if "stop" in f:
+            break

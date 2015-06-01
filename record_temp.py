@@ -15,4 +15,5 @@ def read_voltage():
 	return temp_volt
 
 def get_temp(voltage):
-	return -464.83 * voltage + 553.72 
+	return -336.89*voltage^3 + 676.59*voltage^2 - 896.77*voltage + 649.61
+	

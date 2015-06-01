@@ -68,7 +68,8 @@ volt_source = rm.get_instrument(volt_source_gpib_addr)
 # and voltage source output is on
 na.write('span %d' % span)
 na.write('poin %d' % N_data_points)
-volt_source.write('oupt on')
+volt_source.write('outp on')
+volt_source.write('sour:volt %d' % DC_on)
 
 # autoscale so display is readable
 na.write("chan1")
@@ -112,5 +113,5 @@ take_measurement(10, freq_arr, False, get_DC_bias())
 
 # set bw back to 100 hz, turn DC bias back on, and run continuously
 volt_source.write('sour:volt %d' % DC_on)
-na.write('bw 100')
+na.write('bw 30')
 na.write('cont')

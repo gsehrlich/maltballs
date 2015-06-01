@@ -15,27 +15,19 @@ import cmath as cmath
 from scipy import signal
 import os
 import threading
-import git
 import subprocess
 import datetime
 import time
 
 def log(s):
-    with open('run2/output.log', 'a') as f:
-        f.writeline(s)
+    with open(os.path.join('data', 'run2', 'output.log'), 'w+') as f:
+        f.write(s + "\n")
 
 time_fmt = "%04d-%02d-%02d %02d.%02d.%02d"
 dt = 1 # how often to check whether to stop
 
 def now():
-    return tuple(datetime.datetime.now().timetuple())
-
-analyzer_thread = threading.Thread(target=analyzer_cmds, args=())
-q_thread = threading.Thread(target=q_cmds, args=())
-analyzer_thread.daemon = True
-q_thread.daemon = True
-analyzer_thread.start()
-q_thread.start()
+    return tuple(datetime.datetime.now().timetuple()[:6])
 
 def analyzer_cmds():
     log(subprocess.check_output(["git", "pull"]))
@@ -52,7 +44,7 @@ def analyzer_cmds():
 
         log(subprocess.check_output(["git", "add", "."]))
         log(subprocess.check_output(["git", "commit", "-m", '"data taken"',
-            "."])
+            "."]))
         log(subprocess.check_output(["git", "push", "origin", "master"]))
 
         if 'dt' not in analyzer_globals: analyzer_globals['dt'] = 1
@@ -68,6 +60,13 @@ def q_cmds():
 
     if 'dt' not in q_globals: q_globals['dt'] = 1
     time.sleep(q_globals['dt'])
+
+analyzer_thread = threading.Thread(target=analyzer_cmds, args=())
+q_thread = threading.Thread(target=q_cmds, args=())
+analyzer_thread.daemon = True
+q_thread.daemon = True
+analyzer_thread.start()
+q_thread.start()
 
 while True:
     time.sleep(dt)

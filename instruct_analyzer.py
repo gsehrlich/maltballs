@@ -11,7 +11,7 @@ na_gpib_addr = 'gpib0::17::instr' # network analyzer
 volt_source_gpib_addr = "gpib0::5::instr" # voltage source for DC bias
 DC_on = 8 # volts
 DC_off = 0 # volts
-keep_peak_at_dbm = -40
+keep_peak_at_dbm = -45
 measurement_wait = {30: 0.2342/2*N_data_points + 1,
                     10: 0.9422/2*N_data_points + 1,
                     100: 0.1176/2*N_data_points + 1}

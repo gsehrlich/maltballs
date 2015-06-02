@@ -39,7 +39,7 @@ def analyzer_cmds():
 
     while True:
         try:
-            execfile("instruct_analyzer.py")
+            execfile("instruct_analyzer.py", globals=analyzer_globals)
         except Exception as e:
             log(e.message)
 
@@ -57,7 +57,8 @@ def q_cmds():
     q_globals = {}
     while True:
         try:
-            execfile("transfer_func_Q.py", globals=q_globals)
+            subprocess.call("transfer_func_Q.py")
+            #execfile("transfer_func_Q.py", globals=q_globals)
         except Exception as e:
             log(e.message)
 

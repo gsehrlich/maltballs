@@ -20,8 +20,6 @@ import datetime
 import time
 
 def log(s):
-    print "hello"
-    print str(s)
     with open(os.path.join('data', 'run2', 'output.log'), 'w') as f:
         f.write(str(s) + "\n")
 

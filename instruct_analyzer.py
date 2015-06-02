@@ -37,6 +37,13 @@ def find_10hz_center(center30hz, center10hz):
     Delta = center30hz - center10hz
     return center10hz + Delta*(measurement_wait[10]/2)/(2*measurement_wait[30])
 
+def autoscale():
+    na.write("chan1")
+    na.write("auto")
+    na.write("chan2")
+    na.write("auto")
+    na.write("chan1")
+
 def get_freq_arr():
     start = float(na.query('star?'))
     stop = float(na.query('stop?'))
@@ -104,15 +111,13 @@ na.write('poin %d' % N_data_points)
 volt_source.write('sour:volt %.2f' % DC_on)
 
 # autoscale so display is readable
-na.write("chan1")
-na.write("auto")
-na.write("chan2")
-na.write("auto")
-na.write("chan1")
+autoscale()
 
 # find peak freq and get new frequency array
+# autoscale again beacuse peak might have gone off the display
 center30hz = get_and_center_argmax()
 freq_arr = get_freq_arr()
+autoscale()
 
 # find peak val, then scale input voltage to keep const
 na.write('seam max')

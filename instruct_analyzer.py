@@ -4,8 +4,8 @@ import time
 import datetime
 import record_temp
 
-span = {30: 50, # at 30 hz bandwidth, span is 20 hz ######EDITED 20 TO 40
-        10: 50} 
+span = {30: 20, # at 30 hz bandwidth, span is 20 hz ######EDITED 20 TO 40
+        10: 20} 
 N_data_points = 101
 na_gpib_addr = 'gpib0::17::instr' # network analyzer
 volt_source_gpib_addr = "gpib0::5::instr" # voltage source for DC bias

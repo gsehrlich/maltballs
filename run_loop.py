@@ -30,6 +30,7 @@ def now():
     return tuple(datetime.datetime.now().timetuple()[:6])
 
 def analyzer_cmds():
+    print "hellloooooo"
     log(subprocess.check_output(["git", "pull"]))
 
     analyzer_globals = {}

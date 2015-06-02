@@ -21,6 +21,16 @@ dt = 1 # sec; measurement itself takes long enough
 def now():
     return tuple(datetime.datetime.now().timetuple()[:6])
 
+def center_peak():
+    na.write('seam max')
+    na.write('mkrcent')
+
+def get_freq_arr():
+    start = float(na.query('star?'))
+    stop = float(na.query('stop?'))
+    actual_N = float(na.query('poin?'))
+    return np.linspace(start, stop, actual_N)
+
 def get_gain_phase():
     na.write('chan1') # gain data
     gain = np.array([float(g) for g in na.query_ascii_values('outpdtrc?')[::2]])
@@ -59,8 +69,6 @@ def take_measurement(if_bw, freq_arr, DC_on, DC_bias):
 def get_DC_bias():
     return float(volt_source.query('meas?'))
 
-print "\n\tINSIDE INSTRUCT_ANALYZER.PY 1\n"
-
 # get network analyzer and voltage source
 rm = visa.ResourceManager()
 na = rm.get_instrument(na_gpib_addr)
@@ -73,8 +81,6 @@ na.write('poin %d' % N_data_points)
 volt_source.write('outp on')
 volt_source.write('sour:volt %d' % DC_on)
 
-print "\n\tINSIDE INSTRUCT_ANALYZER.PY 2\n"
-
 # autoscale so display is readable
 na.write("chan1")
 na.write("auto")
@@ -82,15 +88,9 @@ na.write("chan2")
 na.write("auto")
 na.write("chan1")
 
-# find peak freq
-na.write('seam max'); na.write('mkrcent')
-
-# get freq array
-start = float(na.query('star?'))
-stop = float(na.query('stop?'))
-freq_arr = np.linspace(start, stop, N_data_points)
-
-print "\n\tINSIDE INSTRUCT_ANALYZER.PY 3\n"
+# find peak freq and get new frequency array
+center_peak()
+freq_arr = get_freq_arr()
 
 # find peak val, then scale input voltage to keep const
 na.write('seam max')
@@ -104,11 +104,13 @@ na.write('bw 30')
 volt_source.write('sour:volt %d' % DC_on)
 take_measurement(30, freq_arr, True, get_DC_bias())
 
-print "\n\tINSIDE INSTRUCT_ANALYZER.PY 4\n"
-
 # get 30 hz reference measurement
 volt_source.write('sour:volt %d' % DC_off)
 take_measurement(30, freq_arr, False, get_DC_bias())
+
+# find peak freq and get new frequency array
+center_peak()
+freq_arr = get_freq_arr()
 
 # get oscillator measurement at 10 hz
 na.write('bw 10')

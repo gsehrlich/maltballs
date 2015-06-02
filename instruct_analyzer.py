@@ -38,7 +38,13 @@ def get_gain_phase():
     phase = np.array([float(g) for g in na.query_ascii_values('outpdtrc?')[::2]])
     return gain, phase
 
-def take_measurement(if_bw, freq_arr, DC_on, DC_bias):
+def take_measurement(if_bw, freq_arr, DC_is_on, DC_bias):
+    # Set IF bandwidth and whether voltage source is on
+    na.write('bw %d' % if_bw)
+    volt_source.write('sour:volt %.2f' % DC_bias)
+
+    DC_bias = get_DC_bias()
+
     # get one measurement
     T_V_start = record_temp.read_voltage()
     time_started = now()
@@ -49,7 +55,7 @@ def take_measurement(if_bw, freq_arr, DC_on, DC_bias):
 
     # get gain + phase and write to file
     gain, phase = get_gain_phase()
-    filename = direc + "%dhz_%s/" % (if_bw, "osc" if DC_on else "ref")
+    filename = direc + "%dhz_%s/" % (if_bw, "osc" if DC_is_on else "ref")
     filename += time_fmt % time_started
     header_lines = ["Time finished:",
                     time_fmt % time_finished,
@@ -78,8 +84,8 @@ volt_source = rm.get_instrument(volt_source_gpib_addr)
 # and voltage source output is on
 na.write('span %d' % span)
 na.write('poin %d' % N_data_points)
-volt_source.write('outp on')
-volt_source.write('sour:volt %d' % DC_on)
+#volt_source.write('outp on')
+volt_source.write('sour:volt %.2f' % DC_on)
 
 # autoscale so display is readable
 na.write("chan1")
@@ -97,31 +103,25 @@ na.write('seam max')
 max_gain = float(na.query_ascii_values('outpmkr?')[0])
 # source_dbm + max_gain should be == keep_peak_at_dbm
 new_source_dbm = keep_peak_at_dbm - max_gain
-na.write('powe %f' % new_source_dbm)
+na.write('powe %.6f' % new_source_dbm)
 
 # get oscillator measurement at 30 hz
-na.write('bw 30')
-volt_source.write('sour:volt %d' % DC_on)
-take_measurement(30, freq_arr, True, get_DC_bias())
+take_measurement(30, freq_arr, True, DC_on)
 
 # get 30 hz reference measurement
-volt_source.write('sour:volt %d' % DC_off)
-take_measurement(30, freq_arr, False, get_DC_bias())
+take_measurement(30, freq_arr, False, DC_off)
 
 # find peak freq and get new frequency array
 center_peak()
 freq_arr = get_freq_arr()
 
 # get oscillator measurement at 10 hz
-na.write('bw 10')
-volt_source.write('sour:volt %d' % DC_on)
-take_measurement(10, freq_arr, True, get_DC_bias())
+take_measurement(10, freq_arr, True, DC_on)
 
 # get 10 hz reference measurement
-volt_source.write('sour:volt %d' % DC_off)
-take_measurement(10, freq_arr, False, get_DC_bias())
+take_measurement(10, freq_arr, False, DC_off)
 
 # set bw back to 100 hz, turn DC bias back on, and run continuously
-volt_source.write('sour:volt %d' % DC_on)
+volt_source.write('sour:volt %.2f' % DC_on)
 na.write('bw 30')
 na.write('cont')

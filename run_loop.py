@@ -20,7 +20,7 @@ import datetime
 import time
 
 def log(s):
-    with open(os.path.join('data', 'run2', 'output.log'), 'w') as f:
+    with open(os.path.join('data', 'run2', 'output.txt'), 'w') as f:
         f.write(str(s) + "\n")
 
 time_fmt = "%04d-%02d-%02d %02d.%02d.%02d"

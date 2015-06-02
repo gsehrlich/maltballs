@@ -5,7 +5,7 @@ import datetime
 import record_temp
 
 span = {30: 20, # at 30 hz bandwidth, span is 20 hz
-        10: 40}
+        10: 20}
 N_data_points = 101
 na_gpib_addr = 'gpib0::17::instr' # network analyzer
 volt_source_gpib_addr = "gpib0::5::instr" # voltage source for DC bias
@@ -24,13 +24,18 @@ dt = 1 # sec; measurement itself takes long enough
 def now():
     return tuple(datetime.datetime.now().timetuple()[:6])
 
-def center_peak():
+def get_and_center_argmax():
     volt_source.write('sour:volt %.2f' % DC_on)
     na.write('bw 100')
     na.write('sing')
     time.sleep(measurement_wait[100])
     na.write('seam max')
     na.write('mkrcent')
+    return float(na.query('cent?'))
+
+def find_10hz_center(center30hz, center10hz):
+    Delta = center30hz - center10hz
+    return center10hz + Delta*(measurement_wait[10]/2)/(2*measurement_wait[30])
 
 def get_freq_arr():
     start = float(na.query('star?'))
@@ -106,7 +111,7 @@ na.write("auto")
 na.write("chan1")
 
 # find peak freq and get new frequency array
-center_peak()
+center30hz = get_and_center_argmax()
 freq_arr = get_freq_arr()
 
 # find peak val, then scale input voltage to keep const
@@ -124,7 +129,10 @@ take_measurement(30, freq_arr, False, DC_off)
 
 # turn back on output for quick measurement,
 # find peak freq, and get new frequency array
-center_peak()
+center10hz = get_and_center_argmax()
+
+# interpolate a good center value
+na.write('cent %.2f' % find_10hz_center(center30hz, center10hz))
 freq_arr = get_freq_arr()
 
 # get oscillator measurement at 10 hz

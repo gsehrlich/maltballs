@@ -29,6 +29,8 @@ m = 0
 init = [1E-5, 1E-1, 2.318E5]
 dt = 3600 #sec that run_loop will call this.
 
+
+
 def Q_fac (hw, omega_0):
     return omega_0/abs(hw)
 
@@ -38,9 +40,15 @@ def Lorentzian (x, A, B, x0):
 def noise(phi, omega):
     return (4*k_b*T*(omega_0**2)*phi)/(omega*(((omega_0**2)-m*(omega**2))**2+(omega_0**2)*(phi**2)))
 
+def narrow_width(x_array, t):
+    for i in range(len(x_array)):
+        x_array[i] = x_array[i]-i*t
+    return x_array
 
-def get_Q(directory_gain, directory_ref, init):
 
+def get_Q(directory_gain, directory_ref, init):#, sweep_time, num_points):
+    #time_per_point = sweep_time/num_points
+    
     alltemp = []
     allQ = []
     allfreq = []
@@ -81,6 +89,7 @@ def get_Q(directory_gain, directory_ref, init):
         '''fig5 = plt.figure(5)
             plt.plot(freq, data)
             plt.show()'''
+        #freq_gain = narrow_width(freq_gain, time_per_point)
         data_gain = np.power(10, (data_gain-30)/10)
         
         
@@ -150,7 +159,7 @@ file1.close()
 file2.close()
 file3.close()
 file4.close()
-'''fig10 = plt.figure(10)
+fig10 = plt.figure(10)
 plt.plot(freq_list_30, '*b')
 fig11 = plt.figure(11)
 plt.plot(q_list_30, 'ob')
@@ -158,7 +167,7 @@ fig12 = plt.figure(12)
 plt.plot(freq_list_10, '*r')
 fig13 = plt.figure(13)
 plt.plot(q_list_10, 'or')
-plt.show()'''
+plt.show()
 
 
 

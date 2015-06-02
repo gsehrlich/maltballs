@@ -20,7 +20,7 @@ import datetime
 import time
 
 def log(s):
-    with open(os.path.join('data', 'run2', 'output.log'), 'w') as f:
+    with open(os.path.join('data', 'run2', 'output.log'), 'w+') as f:
         f.write(str(s) + "\n")
 
 time_fmt = "%04d-%02d-%02d %02d.%02d.%02d"
@@ -31,21 +31,24 @@ def now():
 
 def analyzer_cmds():
 
-    log(subprocess.check_output(["git", "pull"]))
+    subprocess.call(["git", "pull"])
 
     analyzer_globals = {}
 
     while True:
         try:
-            execfile("instruct_analyzer.py", globals=analyzer_globals)
+            print "about to exec file"
+            execfile("instruct_analyzer.py", analyzer_globals)
+            print "execing file"
         except Exception as e:
+            print e.message
             log(e.message)
 
         log(time_fmt % now())
 
-        log(subprocess.check_output(["git", "add", " ."]))
-        subprocess.call(['git', 'commit', '-am', '"data taken"'])
-        log(subprocess.check_output(["git", "push", "origin", "master"]))
+        subprocess.call(["git", "add", "--all"])
+        subprocess.call(['git', 'commit', '-m', '"data taken"'])
+        subprocess.call(["git", "push", "origin", "master"])
         
 
         if 'dt' not in analyzer_globals: analyzer_globals['dt'] = 1
@@ -55,8 +58,7 @@ def q_cmds():
     q_globals = {}
     while True:
         try:
-            subprocess.call("transfer_func_Q.py")
-            #execfile("transfer_func_Q.py", globals=q_globals)
+            execfile("transfer_func_Q.py", q_globals)
         except Exception as e:
             log(e.message)
 

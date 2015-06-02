@@ -59,6 +59,8 @@ def take_measurement(if_bw, freq_arr, DC_on, DC_bias):
 def get_DC_bias():
     return float(volt_source.query('meas?'))
 
+print "\n\tINSIDE INSTRUCT_ANALYZER.PY 1\n"
+
 # get network analyzer and voltage source
 rm = visa.ResourceManager()
 na = rm.get_instrument(na_gpib_addr)
@@ -70,6 +72,8 @@ na.write('span %d' % span)
 na.write('poin %d' % N_data_points)
 volt_source.write('outp on')
 volt_source.write('sour:volt %d' % DC_on)
+
+print "\n\tINSIDE INSTRUCT_ANALYZER.PY 2\n"
 
 # autoscale so display is readable
 na.write("chan1")
@@ -86,6 +90,8 @@ start = float(na.query('star?'))
 stop = float(na.query('stop?'))
 freq_arr = np.linspace(start, stop, N_data_points)
 
+print "\n\tINSIDE INSTRUCT_ANALYZER.PY 3\n"
+
 # find peak val, then scale input voltage to keep const
 na.write('seam max')
 max_gain = float(na.query_ascii_values('outpmkr?')[0])
@@ -97,6 +103,8 @@ na.write('powe %f' % new_source_dbm)
 na.write('bw 30')
 volt_source.write('sour:volt %d' % DC_on)
 take_measurement(30, freq_arr, True, get_DC_bias())
+
+print "\n\tINSIDE INSTRUCT_ANALYZER.PY 4\n"
 
 # get 30 hz reference measurement
 volt_source.write('sour:volt %d' % DC_off)

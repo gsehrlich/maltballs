@@ -4,7 +4,8 @@ import time
 import datetime
 import record_temp
 
-span = 20     # hz
+span = {30: 20, # at 30 hz bandwidth, span is 20 hz
+        10: 40}
 N_data_points = 101
 na_gpib_addr = 'gpib0::17::instr' # network analyzer
 volt_source_gpib_addr = "gpib0::5::instr" # voltage source for DC bias
@@ -45,6 +46,9 @@ def get_gain_phase():
     return gain, phase
 
 def take_measurement(if_bw, freq_arr, DC_is_on, DC_bias):
+    # set span
+    na.write('span %.2f' % span[if_bw])
+
     # Set IF bandwidth and whether voltage source is on
     na.write('bw %d' % if_bw)
     volt_source.write('sour:volt %.2f' % DC_bias)
@@ -88,9 +92,8 @@ rm = visa.ResourceManager()
 na = rm.get_instrument(na_gpib_addr)
 volt_source = rm.get_instrument(volt_source_gpib_addr)
 
-# make sure span and # points are what they're supposed to be
+# make sure # points is what it's supposed to be
 # and voltage source output is on
-na.write('span %d' % span)
 na.write('poin %d' % N_data_points)
 #volt_source.write('outp on')
 volt_source.write('sour:volt %.2f' % DC_on)

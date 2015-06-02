@@ -39,7 +39,7 @@ def analyzer_cmds():
 
     while True:
         try:
-            execfile("instruct_analyzer.py", globals=analyzer_globals)
+            execfile("instruct_analyzer.py")
         except Exception as e:
             log(e.message)
 

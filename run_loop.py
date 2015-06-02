@@ -40,7 +40,7 @@ def analyzer_cmds():
             print "about to exec file"
             execfile("instruct_analyzer.py", analyzer_globals)
             print "execing file"
-        except Exception as e:
+        except NameError as e:
             print e.message
             log(e.message)
 

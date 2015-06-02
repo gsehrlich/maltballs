@@ -44,7 +44,7 @@ def analyzer_cmds():
         log(time_fmt % now())
 
         log(subprocess.check_output(["git", "add", " ."]))
-        log(subprocess.check_output(['git', 'commit', '-am', '"data taken"']))
+        log(subprocess.call(['git', 'commit', '-am', '"data taken"']))
         log(subprocess.check_output(["git", "push", "origin", "master"]))
         
 

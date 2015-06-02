@@ -21,7 +21,7 @@ import time
 
 def log(s):
     with open(os.path.join('data', 'run2', 'output.log'), 'w+') as f:
-        f.write(s + "\n")
+        f.write(str(s) + "\n")
 
 time_fmt = "%04d-%02d-%02d %02d.%02d.%02d"
 dt = 1 # how often to check whether to stop

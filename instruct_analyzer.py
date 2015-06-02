@@ -11,7 +11,9 @@ volt_source_gpib_addr = "gpib0::5::instr" # voltage source for DC bias
 DC_on = 8 # volts
 DC_off = 0 # volts
 keep_peak_at_dbm = -40
-measurement_wait = {30: 11.83 + 1, 10: 47.58 + 1}
+measurement_wait = {30: 0.2342/2*N_data_points + 1,
+                    10: 0.9422/2*N_data_points + 1,
+                    100: 0.1176/2*N_data_points + 1}
 time_fmt = "%04d-%02d-%02d %02d.%02d.%02d"
 direc = "data/run2/"
 
@@ -22,6 +24,10 @@ def now():
     return tuple(datetime.datetime.now().timetuple()[:6])
 
 def center_peak():
+    volt_source.write('sour:volt %.2f' % DC_on)
+    na.write('bw 100')
+    na.write('sing')
+    time.sleep(measurement_wait[100])
     na.write('seam max')
     na.write('mkrcent')
 
@@ -43,7 +49,7 @@ def take_measurement(if_bw, freq_arr, DC_is_on, DC_bias):
     na.write('bw %d' % if_bw)
     volt_source.write('sour:volt %.2f' % DC_bias)
 
-    DC_bias = get_DC_bias()
+    DC_bias_measured = get_DC_bias()
 
     # get one measurement
     T_V_start = record_temp.read_voltage()
@@ -67,7 +73,9 @@ def take_measurement(if_bw, freq_arr, DC_is_on, DC_bias):
                     str(record_temp.get_temp(T_V_start)),
                     "Approx stop T:",
                     str(record_temp.get_temp(T_V_stop)),
-                    "DC bias:",
+                    "DC bias measured, messed up:",
+                    str(DC_bias_measured),
+                    "DC bias we asked for:",
                     str(DC_bias)]
     header = '\n'.join(header_lines)
     np.savetxt(filename, zip(freq_arr, gain, phase), header=header)
@@ -111,7 +119,8 @@ take_measurement(30, freq_arr, True, DC_on)
 # get 30 hz reference measurement
 take_measurement(30, freq_arr, False, DC_off)
 
-# find peak freq and get new frequency array
+# turn back on output for quick measurement,
+# find peak freq, and get new frequency array
 center_peak()
 freq_arr = get_freq_arr()
 
@@ -121,7 +130,6 @@ take_measurement(10, freq_arr, True, DC_on)
 # get 10 hz reference measurement
 take_measurement(10, freq_arr, False, DC_off)
 
-# set bw back to 100 hz, turn DC bias back on, and run continuously
-volt_source.write('sour:volt %.2f' % DC_on)
-na.write('bw 30')
+# set bw back to 100 hz, turn DC bias back on, center, and run continuously
+center_peak() # this does a bunch of stuff
 na.write('cont')

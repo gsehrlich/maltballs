@@ -37,9 +37,7 @@ def analyzer_cmds():
 
     while True:
         try:
-            print "about to exec file"
             execfile("instruct_analyzer.py", analyzer_globals)
-            print "execing file"
         except NameError as e:
             print e.message
             log(e.message)

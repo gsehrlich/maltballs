@@ -42,9 +42,12 @@ def analyzer_cmds():
 
         log(time_fmt % now())
 
-        log(subprocess.check_output(["git", "add", "."]))
-        log(subprocess.check_output(["git", "commit", "-m", "data taken"]))
-        log(subprocess.check_output(["git", "push", "origin", "master"]))
+        '''log(subprocess.check_output(["git", "add", " ."]))
+        log(subprocess.check_output(["git", "commit", '-m "data taken"']))
+        log(subprocess.check_output(["git", "push", "origin", "master"]))'''
+        subprocess.call(["git", "add", "."])
+        subprocess.call(["git", "commit", '-m "data taken"'])
+        subprocess.call(["git", "push", "origin", "master"])
 
         if 'dt' not in analyzer_globals: analyzer_globals['dt'] = 1
         time.sleep(analyzer_globals['dt'])

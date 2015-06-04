@@ -4,14 +4,14 @@ import time
 import datetime
 import record_temp
 
-span = {30: 20, # at 30 hz bandwidth, span is 20 hz
-        10: 20}
+span = {30: 20, # at 30 hz bandwidth, span is 20 hz ######EDITED 20 TO 40
+        10: 20} 
 N_data_points = 101
 na_gpib_addr = 'gpib0::17::instr' # network analyzer
 volt_source_gpib_addr = "gpib0::5::instr" # voltage source for DC bias
-DC_on = 8 # volts
+DC_on = 4 # volts ######EDITED 8 TO 6
 DC_off = 0 # volts
-keep_peak_at_dbm = -40
+keep_peak_at_dbm = -39 ######EDITED -45 TO -40
 measurement_wait = {30: 0.2342/2*N_data_points + 1,
                     10: 0.9422/2*N_data_points + 1,
                     100: 0.1176/2*N_data_points + 1}
@@ -26,7 +26,7 @@ def now():
 
 def get_and_center_argmax():
     volt_source.write('sour:volt %.2f' % DC_on)
-    na.write('bw 100')
+    na.write('bw 100') ######EDITED 100 TO 500
     na.write('sing')
     time.sleep(measurement_wait[100])
     na.write('seam max')

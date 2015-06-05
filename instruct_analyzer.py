@@ -10,6 +10,7 @@ N_data_points = 101
 na_gpib_addr = 'gpib0::17::instr' # network analyzer
 volt_source_gpib_addr = "gpib0::5::instr" # voltage source for DC bias
 DC_biases = [8, 4] # volts
+DC_on = DC_biases[0]
 DC_off = 0
 keep_peak_at_dbm = -40
 measurement_wait = {30: 0.2342/2*N_data_points + 1,
@@ -66,7 +67,7 @@ def get_gain_phase():
     phase = np.array([float(g) for g in na.query_ascii_values('outpdtrc?')[::2]])
     return gain, phase
 
-def take_measurement(if_bw, freq_arr, DC_bias):
+def take_measurement(if_bw, freq_arr, DC_bias, power):
     # set span
     na.write('span %.2f' % span[if_bw])
 
@@ -86,7 +87,7 @@ def take_measurement(if_bw, freq_arr, DC_bias):
 
     # get gain + phase and write to file
     gain, phase = get_gain_phase()
-    filename = direc + "%dhz_%s/" % (if_bw, "%d_V" % DC_bias)
+    filename = direc + "%dhz_%s/" % (if_bw, "%dV" % DC_bias)
     filename += time_fmt % time_started
     header_lines = ["Time finished:",
                     time_fmt % time_finished,
@@ -101,7 +102,9 @@ def take_measurement(if_bw, freq_arr, DC_bias):
                     "DC bias measured, messed up:",
                     str(DC_bias_measured),
                     "DC bias we asked for:",
-                    str(DC_bias)]
+                    str(DC_bias),
+                    "Source power:",
+                    str(power)]
     header = '\n'.join(header_lines)
     np.savetxt(filename, zip(freq_arr, gain, phase), header=header)
 
@@ -128,6 +131,7 @@ max_gain = float(na.query_ascii_values('outpmkr?')[0])
 # source_dbm + max_gain should be == keep_peak_at_dbm
 new_source_dbm = keep_peak_at_dbm - max_gain
 na.write('powe %.6f' % new_source_dbm)
+power = float(na.query('powe?'))
 
 # find centers for the next n measurements
 # autoscale again beacuse peak might have gone off the display
@@ -139,9 +143,9 @@ for center, DC_bias in zip(centers, DC_biases):
     na.write('cent %.7f' % center)
     freq_arr = get_freq_arr()
     volt_source.write('sour:volt %.2f' % DC_bias)
-    take_measurement(30, freq_arr, DC_bias)
+    take_measurement(30, freq_arr, DC_bias, power)
     volt_source.write('sour:volt %.2f' % DC_off)
-    take_measurement(30, freq_arr, DC_off)
+    take_measurement(30, freq_arr, DC_off, power)
 
 # find centers for the next n measurements
 # autoscale again beacuse peak might have gone off the display
@@ -153,9 +157,9 @@ for center, DC_bias in zip(centers, DC_biases):
     na.write('cent %.7f' % center)
     freq_arr = get_freq_arr()
     volt_source.write('sour:volt %.2f' % DC_bias)
-    take_measurement(10, freq_arr, DC_bias)
+    take_measurement(10, freq_arr, DC_bias, power)
     volt_source.write('sour:volt %.2f' % DC_off)
-    take_measurement(10, freq_arr, DC_off)
+    take_measurement(10, freq_arr, DC_off, power)
 
 # set bw back to 100 hz, turn DC bias back on, center, and run continuously
 center_peak() # this does a bunch of stuff

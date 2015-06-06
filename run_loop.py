@@ -46,6 +46,7 @@ def analyzer_cmds():
 
         subprocess.call(["git", "add", "--all"])
         subprocess.call(['git', 'commit', '-m', '"data taken"'])
+        subprocess.call(['git', 'pull'])
         subprocess.call(["git", "push", "origin", "master"])
         
 
